@@ -1,7 +1,8 @@
-# auto_test
+# ChatGPT-3.5-turbo
 
 
-first auto test program
+My personal bot with chatgptAPI
+
 
 
 
