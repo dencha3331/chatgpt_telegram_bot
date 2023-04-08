@@ -1,14 +1,16 @@
-from aiogram import Router
-from aiogram.filters import Command, CommandStart
-from aiogram.types import Message
 import logging
 import openai
+from aiogram import Router
+from aiogram.types import Message
+from aiogram.filters import Command, CommandStart
 
 from config_data import load_config
-from lexicon import LEXICON_RU
+from lexicons import LEXICON_RU
+
+lexicon: dict[str, str] = LEXICON_RU['user_handlers']
 
 user_handler_router: Router = Router()
-logging.basicConfig(level=logging.INFO, filename="bot.log", filemode="a")  # set logger
+logging.basicConfig(level=logging.INFO, filename="user_handlers.log", filemode="a")  # set logger
 openai.api_key = load_config().open_ai.token  # API openAI
 messages: dict[int: list[str]] = {}  # Все сообщения в чате с chatGPT(не более 4096 токенов после сброс)
 
@@ -19,7 +21,7 @@ async def welcome_command(message: Message):
     try:
         userid = message.from_user.id
         messages[userid] = []
-        await message.answer(f"Привет {message.from_user.first_name}!\n{LEXICON_RU['/start']}")
+        await message.answer(f"{message.from_user.first_name}!\n{lexicon['/start']}")
         logging.info(f"start chat for {message.from_user.first_name}({message.from_user.id})")
     except Exception as e:
         logging.error(f"start command error: {e}")
@@ -27,7 +29,7 @@ async def welcome_command(message: Message):
 
 @user_handler_router.message(Command(commands=['help']))
 async def help_command(message: Message):
-    await message.reply(LEXICON_RU["/help"])
+    await message.reply(lexicon["/help"])
 
 
 @user_handler_router.message(Command(commands=["new"]))
@@ -35,7 +37,7 @@ async def new_dialog(message: Message):
     try:
         userid = message.from_user.id
         messages[userid] = []
-        await message.answer(f"{LEXICON_RU['/new']}")
+        await message.answer(f"{lexicon['/new']}")
         logging.info(f"Начат новый диалог с {message.from_user.first_name}")
     except Exception as e:
         logging.error(f"new dialog command error: {e}")
@@ -52,7 +54,7 @@ async def chatgpt_answer(message: Message):
         if userid not in messages:
             messages[userid] = []
         messages[userid].append({"role": "user", "content": user_message})
-        logging.info(f'{message.from_user.first_name}({message.from_user.id}): {user_message}')
+        logging.info(f'{message.from_user.first_name}({message.from_user.id}): {user_message[:100]}')
 
         # processing_message = await message.reply("Пожалуйста, подождите, я обрабатываю ваш запрос...")
         completion = openai.ChatCompletion.create(
@@ -73,5 +75,5 @@ async def chatgpt_answer(message: Message):
     except Exception as e:
         logging.error(f"error in answer: {e}")
         if e == 'context_length_exceeded':
-            await message.reply(LEXICON_RU['end_cash'])
+            await message.reply(lexicon['end_cash'])
             await new_dialog(message)

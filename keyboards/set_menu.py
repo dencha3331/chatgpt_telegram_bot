@@ -11,5 +11,11 @@ async def set_main_menu(bot: Bot):
                    description='Справка по работе бота'),
         BotCommand(command='/new',
                    description='Начать диалог с начала'),
+        BotCommand(command='/registration',
+                   description='Регистрация'),
+        BotCommand(command='/cancel',
+                   description='Отмена регистрации'),
+        BotCommand(command='/showdata',
+                   description='Показать регистрационные данные'),
     ]
     await bot.set_my_commands(main_menu_commands)
