@@ -1,3 +1,4 @@
+import logging
 from aiogram import Router, F
 from aiogram.filters import Command, StateFilter, Text
 from aiogram.filters.state import State, StatesGroup
@@ -20,7 +21,6 @@ lexicon_buttons: dict[str, str] = LEXICON_RU['registration_handlers']['buttons']
 
 # Класс, наследуемый от StatesGroup, для группы состояний
 class FSMFillForm(StatesGroup):
-
     fill_name = State()  # Состояние ожидания ввода имени
     fill_age = State()  # Состояние ожидания ввода возраста
     fill_gender = State()  # Состояние ожидания выбора пола
@@ -37,7 +37,7 @@ async def process_cancel_command(message: Message):
 # Хэндлер команды "/cancel" в любых состояниях
 @registration_router.message(Command(commands='cancel'), ~StateFilter(default_state))
 async def process_cancel_command_state(message: Message, state: FSMContext):
-
+    logging.info(f"Cancel registration user: user id {message.from_user.id}")
     await message.answer(text=lexicon['cancel_fillform_state'])
     await state.clear()
 
@@ -45,7 +45,7 @@ async def process_cancel_command_state(message: Message, state: FSMContext):
 # Хэндлер команды /registration, переводит в состояние ввода имени
 @registration_router.message(Command(commands='registration'), StateFilter(default_state))
 async def process_fillform_command(message: Message, state: FSMContext):
-
+    logging.info(f"Registration user: user_id {message.from_user.id}")
     await message.answer(text=lexicon['enter_name'])
     await state.set_state(FSMFillForm.fill_name)
 
@@ -53,10 +53,9 @@ async def process_fillform_command(message: Message, state: FSMContext):
 # Хэндлер корректного ввода имени, переводит в состояние ввода возвраста
 @registration_router.message(StateFilter(FSMFillForm.fill_name), F.text.isalpha())
 async def process_name_sent(message: Message, state: FSMContext):
-
     await state.update_data(name=message.text)
     await message.answer(text=lexicon["enter_age"])
-    
+
     await state.set_state(FSMFillForm.fill_age)
 
 
@@ -70,7 +69,6 @@ async def warning_not_name(message: Message):
 @registration_router.message(StateFilter(FSMFillForm.fill_age),
                              lambda x: x.text.isdigit() and 4 <= int(x.text) <= 120)
 async def process_age_sent(message: Message, state: FSMContext):
-
     await state.update_data(age=message.text)
 
     male_button = InlineKeyboardButton(text=lexicon_buttons['male'],
@@ -86,7 +84,6 @@ async def process_age_sent(message: Message, state: FSMContext):
 
     await message.answer(text=lexicon["enter_gender"],
                          reply_markup=markup)
-
     await state.set_state(FSMFillForm.fill_gender)
 
 
@@ -101,7 +98,6 @@ async def warning_not_age(message: Message):
 @registration_router.callback_query(StateFilter(FSMFillForm.fill_gender),
                                     Text(text=['male', 'female', 'undefined_gender']))
 async def process_gender_press(callback: CallbackQuery, state: FSMContext):
-
     await state.update_data(gender=callback.data)
 
     secondary_button = InlineKeyboardButton(text=lexicon_buttons['secondary'],
@@ -110,17 +106,15 @@ async def process_gender_press(callback: CallbackQuery, state: FSMContext):
                                          callback_data='higher')
     no_edu_button = InlineKeyboardButton(text=lexicon_buttons['no_edu'],
                                          callback_data='no_edu')
-    
+
     keyboard: list[list[InlineKeyboardButton]] = [
         [secondary_button, higher_button],
         [no_edu_button]]
-    
-    markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
-    
-    await callback.message.answer(text=lexicon["enter_education"],
-                                  reply_markup=markup)
 
-    
+    markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+    await callback.message.edit_text(text=lexicon["enter_education"],
+                                     reply_markup=markup)
     await state.set_state(FSMFillForm.fill_education)
 
 
@@ -130,11 +124,10 @@ async def warning_not_gender(message: Message):
     await message.answer(text=lexicon["negative_gender"])
 
 
-# Хэндлер коретного ввода выбраного образование и переводит в состояние получать новости
+# Хэндлер корректного ввода выбранного образование и переводит в состояние получать новости
 @registration_router.callback_query(StateFilter(FSMFillForm.fill_education),
                                     Text(text=['secondary', 'higher', 'no_edu']))
-async def process_education_press(callback: CallbackQuery, state: FSMContext)
-
+async def process_education_press(callback: CallbackQuery, state: FSMContext):
     await state.update_data(education=callback.data)
 
     yes_news_button = InlineKeyboardButton(text=lexicon_buttons['yes_news'],
@@ -146,7 +139,7 @@ async def process_education_press(callback: CallbackQuery, state: FSMContext)
         [yes_news_button,
          no_news_button]]
     markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
- 
+
     await callback.message.edit_text(text=lexicon["enter_want_news"],
                                      reply_markup=markup)
     await state.set_state(FSMFillForm.fill_wish_news)
@@ -162,15 +155,13 @@ async def warning_not_education(message: Message):
 @registration_router.callback_query(StateFilter(FSMFillForm.fill_wish_news),
                                     Text(text=['yes_news', 'no_news']))
 async def process_wish_news_press(callback: CallbackQuery, state: FSMContext):
-    
     await state.update_data(wish_news=callback.data == 'yes_news')
-    
+
     user_dict[callback.from_user.id] = await state.get_data()
-    
+
     await state.clear()
-    
+
     await callback.message.edit_text(text=lexicon["end_registration"])
-    
     await callback.message.answer(text=lexicon["show_data"])
 
 
@@ -191,4 +182,3 @@ async def process_showdata_command(message: Message):
                                   f'{lexicon["show_db_news"]}: {user_dict[message.from_user.id]["wish_news"]}')
     else:
         await message.answer(text=lexicon["empty_db"])
-
