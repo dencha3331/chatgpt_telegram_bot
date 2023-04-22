@@ -16,12 +16,9 @@ LEXICON_RU: dict[str, dict[str, str | dict[str, str]]] = {
     },
 
     "registration_handlers": {
-        "cancel_default_state": 'Отменять нечего. Вы вне машины состояний\n\n'
-                                'Чтобы перейти к заполнению анкеты - '
-                                'отправьте команду /registration',
-        "cancel_fillform_state": 'Вы вышли из машины состояний\n\n'
-                                 'Чтобы снова перейти к заполнению анкеты - '
-                                 'отправьте команду /registration',
+        "cancel_default_state": 'Отменять нечего.',
+        "cancel_fillform_state": 'Отмена. Если хотите возобновить откройте меню в левом нижнем углу и' 
+                                 'выберите необходимый пункт',
         "enter_name": "Пожалуйста, введите ваше имя",
         "enter_age": "А теперь введите ваш возраст",
         "negative_enter_name": 'То, что вы отправили не похоже на имя\n\n'

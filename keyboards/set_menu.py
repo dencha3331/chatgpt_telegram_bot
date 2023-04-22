@@ -14,8 +14,10 @@ async def set_main_menu(bot: Bot):
         BotCommand(command='/registration',
                    description='Регистрация'),
         BotCommand(command='/cancel',
-                   description='Отмена регистрации'),
+                   description='Отмена действия'),
         BotCommand(command='/showdata',
                    description='Показать регистрационные данные'),
-    ]
+        BotCommand(command='/weather',
+                   description='Узнать погоду'),
+ ]
     await bot.set_my_commands(main_menu_commands)

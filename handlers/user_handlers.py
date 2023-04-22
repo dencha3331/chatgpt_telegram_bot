@@ -7,6 +7,7 @@ from aiogram.filters import Command, CommandStart
 from config_data import load_config
 from lexicons import LEXICON_RU
 from config_data import bot
+from services import count_tokens_from_messages
 
 lexicon: dict[str, str] = LEXICON_RU['user_handlers']
 user_handler_router: Router = Router()
@@ -56,15 +57,17 @@ async def chatgpt_answer(message: Message):
     Handles all messages not in listed above and interaction with gpt3.5-turbo.
     """
     try:
+        model = "gpt-3.5-turbo-0301"
         user_message = message.text
         userid = message.from_user.id
         if userid not in messages:
             messages[userid] = []
         messages[userid].append({"role": "user", "content": user_message})
-        logging.info(f'{message.from_user.first_name}({message.from_user.id}): {user_message}')
         processing_message = await message.reply(lexicon['processing_message'])
+        if count_tokens_from_messages(messages, model) > 3000:
+            pass
         completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model=model,
             messages=messages[userid],
             max_tokens=1024,
             temperature=0.7,
@@ -74,7 +77,17 @@ async def chatgpt_answer(message: Message):
         )
         chatgpt_response = completion.choices[0]['message']
         messages[userid].append({"role": "assistant", "content": chatgpt_response['content']})
+
+        logging.info(f'{message.from_user.first_name}({message.from_user.id}): {user_message}')
         logging.info(f'ChatGPT response: {chatgpt_response["content"]}')
+
+        tokens = completion["usage"]
+        logging.info(f'prompt tokens used: {tokens["prompt_tokens"]}'
+                     f'completion_tokens: {tokens["completion_tokens"]}'
+                     f'Total tokens: {tokens["total_tokens"]}')
+
+        logging.info(f"count_tokens: {count_tokens_from_messages(messages[userid], model)}")
+
         await message.reply(chatgpt_response['content'])
         await bot.delete_message(chat_id=processing_message.chat.id, message_id=processing_message.message_id)
 
