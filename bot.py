@@ -5,14 +5,12 @@ from aiogram import Dispatcher
 import logging
 import asyncio
 
-
 from config_data.config import bot
-from handlers import (user_handler_router, 
-                      registration_router, 
+from handlers import (user_handler_router,
+                      registration_router,
                       voice_router,
-                      location_router,)
+                      weather_router, )
 from keyboards import set_main_menu
-
 
 
 async def main():
@@ -33,11 +31,12 @@ async def main():
     logging.info("Starting bot")
     dp: Dispatcher = Dispatcher(storage=storage)
     dp.include_router(registration_router)
-    dp.include_router(location_router)
+    dp.include_router(weather_router)
     dp.include_router(voice_router)
     dp.include_router(user_handler_router)
     await set_main_menu(bot)
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

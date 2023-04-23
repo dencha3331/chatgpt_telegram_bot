@@ -1,4 +1,7 @@
 import logging
+from os import urandom
+from urllib.request import FancyURLopener
+from numpy import union1d
 import openai
 from aiogram import Router, F
 from aiogram.types import Message
@@ -12,7 +15,8 @@ from services import count_tokens_from_messages
 lexicon: dict[str, str] = LEXICON_RU['user_handlers']
 user_handler_router: Router = Router()
 openai.api_key = load_config().open_ai.token  # API openAI
-messages: dict[int: list[str]] = {}  # Все сообщения в чате с chatGPT(не более 4096 токенов после сброс)
+messages: dict[int, dict[str, list[dict] | bool]] = {}
+               # Все сообщения в чате с chatGPT(не более 4096 токенов после сброс)
 
 
 @user_handler_router.message(CommandStart())
@@ -22,8 +26,11 @@ async def welcome_command(message: Message):
     """
     try:
         userid = message.from_user.id
-        messages[userid] = []
+        messages[userid] = {}
+        messages[userid]["content"] = []
+        messages[userid]["tokens"] = False
         await message.answer(f"{message.from_user.first_name}!\n{lexicon['/start']}")
+
         logging.info(f"start chat for {message.from_user.first_name}({message.from_user.id})")
     except Exception as e:
         logging.error(f"start command error: {e}")
@@ -44,7 +51,10 @@ async def new_dialog(message: Message):
     """
     try:
         userid = message.from_user.id
-        messages[userid] = []
+        messages[userid] = {}
+        messages[userid]["content"] = []
+        messages[userid]["tokens"] = False
+
         await message.answer(f"{lexicon['/new']}")
         logging.info(f"Начат новый диалог с {message.from_user.first_name}")
     except Exception as e:
@@ -61,14 +71,21 @@ async def chatgpt_answer(message: Message):
         user_message = message.text
         userid = message.from_user.id
         if userid not in messages:
-            messages[userid] = []
-        messages[userid].append({"role": "user", "content": user_message})
+            messages[userid] = {}
+            messages[userid]["content"] = []
+            messages[userid]["tokens"] = False
+        messages[userid]["content"].append({"role": "user", "content": user_message})
         processing_message = await message.reply(lexicon['processing_message'])
-        if count_tokens_from_messages(messages, model) > 3000:
-            pass
+        if count_tokens_from_messages(messages[userid]["content"], model) > 3000:
+            if not messages[userid]["tokens"]:
+                messages[userid]["tokens"] = True
+                await message.answer(lexicon['tokens_limit'])
+            while count_tokens_from_messages(messages[userid]["content"], model) > 2000:
+                messages[userid]["content"].pop(0)
+
         completion = openai.ChatCompletion.create(
             model=model,
-            messages=messages[userid],
+            messages=messages[userid]["content"],
             max_tokens=1024,
             temperature=0.7,
             frequency_penalty=0,
@@ -76,17 +93,11 @@ async def chatgpt_answer(message: Message):
             user=message.from_user.first_name
         )
         chatgpt_response = completion.choices[0]['message']
-        messages[userid].append({"role": "assistant", "content": chatgpt_response['content']})
+        messages[userid]["content"].append({"role": "assistant", "content": chatgpt_response['content']})
 
         logging.info(f'{message.from_user.first_name}({message.from_user.id}): {user_message}')
         logging.info(f'ChatGPT response: {chatgpt_response["content"]}')
-
-        tokens = completion["usage"]
-        logging.info(f'prompt tokens used: {tokens["prompt_tokens"]}'
-                     f'completion_tokens: {tokens["completion_tokens"]}'
-                     f'Total tokens: {tokens["total_tokens"]}')
-
-        logging.info(f"count_tokens: {count_tokens_from_messages(messages[userid], model)}")
+        logging.info(f'Total tokens: {completion["usage"]["total_tokens"]}')
 
         await message.reply(chatgpt_response['content'])
         await bot.delete_message(chat_id=processing_message.chat.id, message_id=processing_message.message_id)
