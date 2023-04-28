@@ -7,6 +7,7 @@ from aiogram import Router, F
 from geopy.geocoders import Nominatim
 import requests
 
+
 weather_router: Router = Router()
 
 

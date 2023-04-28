@@ -1,4 +1,4 @@
-import logging
+from logs import logger
 from aiogram import Router, F
 from aiogram.types import Message
 from io import BytesIO
@@ -13,6 +13,8 @@ from lexicons import LEXICON_RU
 lexicon = LEXICON_RU['voice_handlers']
 
 voice_router: Router = Router()
+
+"""Надо сделать через FSM чтоб пока не будет верного текста не отправлять в chatgpt_answer"""
 
 
 @voice_router.message(F.voice)
@@ -33,7 +35,7 @@ async def process_voice_message(message: Message):
         recognizer.AcceptWaveform(wav_data_bytesio)
         result = recognizer.FinalResult()
         result_str = json.loads(result)['text']
-        logging.info(f"vosk_text: {result_str}")
+        logger.info(f"vosk_text: {result_str}")
         updated_message = Message(
             message_id=message.message_id,
             chat=message.chat,
@@ -48,6 +50,6 @@ async def process_voice_message(message: Message):
         else:
             raise Exception
     except Exception as e:
-        logging.error(e)
-        logging.error(f"type_error: {type(e)}")
+        logger.error(e)
+        logger.error(f"type_error: {type(e)}")
         await message.answer(lexicon["something_wrong"])

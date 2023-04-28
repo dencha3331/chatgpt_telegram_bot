@@ -1,8 +1,6 @@
-import logging
-from os import urandom
-from urllib.request import FancyURLopener
-from numpy import union1d
+from logs import logger
 import openai
+import json
 from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.filters import Command, CommandStart
@@ -11,12 +9,17 @@ from config_data import load_config
 from lexicons import LEXICON_RU
 from config_data import bot
 from services import count_tokens_from_messages
+from db import DateBase
+
+db = DateBase("db/db_bot.db")
+db.create_db("messages_chatgpt", {"user_id": "INTEGER",
+                                  "messages": "TEXT",
+                                  "tokens": "INTEGER",
+                                  "max_tokens": "INTEGER"})
 
 lexicon: dict[str, str] = LEXICON_RU['user_handlers']
 user_handler_router: Router = Router()
 openai.api_key = load_config().open_ai.token  # API openAI
-messages: dict[int, dict[str, list[dict] | bool]] = {}
-               # Все сообщения в чате с chatGPT(не более 4096 токенов после сброс)
 
 
 @user_handler_router.message(CommandStart())
@@ -26,20 +29,26 @@ async def welcome_command(message: Message):
     """
     try:
         userid = message.from_user.id
-        messages[userid] = {}
-        messages[userid]["content"] = []
-        messages[userid]["tokens"] = False
+        values = {"user_id": userid,
+                  "messages": "[]",
+                  "tokens": 100000,
+                  "max_tokens": 0}
+        if userid not in db.get_column("messages_chatgpt", "user_id"):
+            db.insert("messages_chatgpt", values)
+        else:
+            db.update_values("messages_chatgpt", values, {"user_id": userid})
+
         await message.answer(f"{message.from_user.first_name}!\n{lexicon['/start']}")
 
-        logging.info(f"start chat for {message.from_user.first_name}({message.from_user.id})")
+        logger.info(f"start chat for {message.from_user.first_name}({message.from_user.id})")
     except Exception as e:
-        logging.error(f"start command error: {e}")
+        logger.error(f"start command error: {e}")
 
 
 @user_handler_router.message(Command(commands=['help']))
 async def help_command(message: Message):
     """
-    Command /help
+    Command /help send help message 
     """
     await message.reply(lexicon["/help"])
 
@@ -51,14 +60,18 @@ async def new_dialog(message: Message):
     """
     try:
         userid = message.from_user.id
-        messages[userid] = {}
-        messages[userid]["content"] = []
-        messages[userid]["tokens"] = False
+        if userid in db.get_column("messages_chatgpt", "user_id"):
+            values = {"user_id": userid,
+                      "messages": "[]",
+                      "max_tokens": 0}
+            db.update_values("messages_chatgpt", values, {"user_id": userid})
+        else:
+            await message.answer("Пройдите регистрацию")
 
         await message.answer(f"{lexicon['/new']}")
-        logging.info(f"Начат новый диалог с {message.from_user.first_name}")
+        logger.info(f"Начат новый диалог с {message.from_user.first_name}")
     except Exception as e:
-        logging.error(f"new dialog command error: {e}")
+        logger.error(f"new dialog command error: {e}")
 
 
 @user_handler_router.message(F.text)
@@ -66,26 +79,29 @@ async def chatgpt_answer(message: Message):
     """
     Handles all messages not in listed above and interaction with gpt3.5-turbo.
     """
+    processing_message = await message.reply(lexicon['processing_message'])
     try:
         model = "gpt-3.5-turbo-0301"
         user_message = message.text
         userid = message.from_user.id
-        if userid not in messages:
-            messages[userid] = {}
-            messages[userid]["content"] = []
-            messages[userid]["tokens"] = False
-        messages[userid]["content"].append({"role": "user", "content": user_message})
-        processing_message = await message.reply(lexicon['processing_message'])
-        if count_tokens_from_messages(messages[userid]["content"], model) > 3000:
-            if not messages[userid]["tokens"]:
-                messages[userid]["tokens"] = True
+        if userid not in db.get_column("messages_chatgpt", "user_id"):
+            db.insert("messages_chatgpt", {"user_id": userid,
+                                           "messages": '[]',
+                                           "tokens": 100000,
+                                           "max_tokens": 0})
+        chat_messages = json.loads(db.get_cell_value("messages_chatgpt", "messages", ("user_id", userid)))
+        chat_messages.append({'role': 'user', 'content': user_message})
+
+        if count_tokens_from_messages(chat_messages, model) > 3000:
+            if not db.get_cell_value("messages", "max_tokens", ("user_id", userid,)):
+                db.update_values("messages_chatgpt", {"max_tokens": 1}, {"user_id": userid})
                 await message.answer(lexicon['tokens_limit'])
-            while count_tokens_from_messages(messages[userid]["content"], model) > 2000:
-                messages[userid]["content"].pop(0)
+            while count_tokens_from_messages(chat_messages, model) > 2000:
+                chat_messages.pop(0)
 
         completion = openai.ChatCompletion.create(
             model=model,
-            messages=messages[userid]["content"],
+            messages=chat_messages,
             max_tokens=1024,
             temperature=0.7,
             frequency_penalty=0,
@@ -93,20 +109,32 @@ async def chatgpt_answer(message: Message):
             user=message.from_user.first_name
         )
         chatgpt_response = completion.choices[0]['message']
-        messages[userid]["content"].append({"role": "assistant", "content": chatgpt_response['content']})
+        chat_messages.append({'role': 'assistant', 'content': chatgpt_response['content']})
+        str_chat_messages = json.dumps(chat_messages)
+        tokens = db.get_cell_value(
+            "messages_chatgpt", "tokens", ("user_id", userid)
+        ) - completion['usage']['total_tokens']
+        db.update_values("messages_chatgpt", {"messages": str_chat_messages,
+                                              "tokens": tokens}, {"user_id": userid})
+        # Уведомление, что токены заканчиваются и отправить сообщение пользователю о количестве
+        db.notification_tokens(userid)
 
-        logging.info(f'{message.from_user.first_name}({message.from_user.id}): {user_message}')
-        logging.info(f'ChatGPT response: {chatgpt_response["content"]}')
-        logging.info(f'Total tokens: {completion["usage"]["total_tokens"]}')
+        logger.debug(f'{message.from_user.first_name}({message.from_user.id}): {user_message}')
+        logger.debug(f'ChatGPT response: {chatgpt_response["content"]}')
+        # logger.info(f'{userid}:\nTotal tokens: {completion["usage"]["total_tokens"]}')
+        if db.get_cell_value("messages_chatgpt", "tokens", ("user_id", userid)) < 10000:
+            await message.answer("У вас меньше 10000 токенов")
 
         await message.reply(chatgpt_response['content'])
         await bot.delete_message(chat_id=processing_message.chat.id, message_id=processing_message.message_id)
 
     except Exception as e:
-        logging.error(f"error in answer: {e}")
-        logging.error(f"type: {type(e)}")
-        await message.reply(lexicon['end_cash'])
-        await new_dialog(message)
+        logger.error(f"error in answer: {e}")
+        logger.error(f"type: {type(e)}")
+        # await message.reply(lexicon['end_cash'])
+        # await new_dialog(message)
+        await bot.delete_message(chat_id=processing_message.chat.id, message_id=processing_message.message_id)
+        await message.answer(lexicon['something_wrong'])
 
 
 @user_handler_router.message()

@@ -1,4 +1,4 @@
-import logging
+from logs import logger
 from aiogram import Router, F
 from aiogram.filters import Command, StateFilter, Text
 from aiogram.filters.state import State, StatesGroup
@@ -7,6 +7,7 @@ from aiogram.fsm.state import default_state
 from aiogram.types import (CallbackQuery, InlineKeyboardButton,
                            InlineKeyboardMarkup, Message)
 
+from db import DateBase
 from lexicons import LEXICON_RU
 
 registration_router: Router = Router()
@@ -37,7 +38,7 @@ async def process_cancel_command(message: Message):
 # Хэндлер команды "/cancel" в любых состояниях
 @registration_router.message(Command(commands='cancel'), ~StateFilter(default_state))
 async def process_cancel_command_state(message: Message, state: FSMContext):
-    logging.info(f"Cancel registration user: user id {message.from_user.id}")
+    logger.info(f"Cancel registration user: user id {message.from_user.id}")
     await message.answer(text=lexicon['cancel_fillform_state'])
     await state.clear()
 
@@ -45,7 +46,8 @@ async def process_cancel_command_state(message: Message, state: FSMContext):
 # Хэндлер команды /registration, переводит в состояние ввода имени
 @registration_router.message(Command(commands='registration'), StateFilter(default_state))
 async def process_fillform_command(message: Message, state: FSMContext):
-    logging.info(f"Registration user: user_id {message.from_user.id}")
+
+    logger.info(f"Registration user: user_id {message.from_user.id}")
     await message.answer(text=lexicon['enter_name'])
     await state.set_state(FSMFillForm.fill_name)
 
