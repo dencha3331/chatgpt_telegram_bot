@@ -4,10 +4,11 @@ import os
 
 
 class MyLogger:
+    """Class logger"""
     def __init__(self, logger_name, log_dir):
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(filename)s %(asctime)s %(levelname)s %(message)s')
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
         # Создаем обработчик для вывода в консоль
         console_handler = logging.StreamHandler()

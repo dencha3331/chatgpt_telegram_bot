@@ -1,5 +1,11 @@
 import tiktoken
 
+from db import DateBase
+from lexicons import LEXICON_RU
+
+DB_PATH = "db/db_bot.db"
+lexicon = LEXICON_RU['service']
+
 
 def count_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
     """Returns the number of tokens used by a list of messages."""
@@ -18,24 +24,17 @@ def count_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
         num_tokens += 2  # every reply is primed with <im_start>assistant
         return num_tokens
     else:
-        raise NotImplementedError(f"""num_tokens_from_messages() is not presently implemented for model {model}.
-  See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens.""")
+        raise NotImplementedError(f"""num_tokens_from_messages() is not presently implemented for model {model}.""")
 
 
-# messages = [
-#     {"role": "system",
-#      "content": "You are a helpful, pattern-following assistant that translates corporate jargon into plain English."},
-#     {"role": "system", "name": "example_user", "content": "New synergies will help drive top-line growth."},
-#     {"role": "system", "name": "example_assistant", "content": "Things working well together will increase revenue."},
-#     {"role": "system", "name": "example_user",
-#      "content": "Let's circle back when we have more bandwidth to touch base on opportunities for increased leverage."},
-#     {"role": "system", "name": "example_assistant",
-#      "content": "Let's talk later when we're less busy about how to do better."},
-#     {"role": "user",
-#      "content": "This late pivot means we don't have time to boil the ocean for the client deliverable."},
-# ]
-#
-# model = "gpt-3.5-turbo-0301"
-
-# print(f"{num_tokens_from_messages(messages, model)} prompt tokens counted.")
-# Should show ~126 total_tokens
+async def check_tokens(userid: int):
+    """Check count tokens in send message and check tokens in db on table users"""
+    with DateBase(DB_PATH) as db:
+        tokens = db.get_cell_value("messages_chatgpt", "tokens", ("user_id", userid))
+        max_tokens = db.get_cell_value("messages_chatgpt", "max_tokens", ("user_id", userid,))
+        if tokens < 10000:
+            return f"У вас осталось {tokens} токенов"
+        if max_tokens == 1:
+            db.update_values("messages_chatgpt", {"max_tokens": 2}, {"user_id": userid})
+            return lexicon['tokens_limit']
+        return
