@@ -14,6 +14,7 @@ registration_router: Router = Router()
 
 # User database
 TABLE_NAME = "users"
+TABLE_NAME_FOR_MESSAGES = "messages_chatgpt"
 DB_PATH = "db/db_bot.db"
 
 # Variables for cues and buttons
@@ -46,7 +47,7 @@ async def process_cancel_command_state(message: Message, state: FSMContext):
 
 
 @registration_router.message(Command(commands='registration'), StateFilter(default_state))
-async def process_fillform_command(message: Message, state: FSMContext):
+async def process_fill_form_command(message: Message, state: FSMContext):
     """/registration command handler, puts you in the name input state.
     If the user is already registered, it offers to update the data and goes to the state update_reg_data"""
     logger.info(f"Registration user: user_id {message.from_user.id}")
@@ -163,6 +164,10 @@ async def process_wish_news_press(callback: CallbackQuery, state: FSMContext):
         if userid not in db.get_column(table=TABLE_NAME, name_column="user_id"):
             reg_data.update(tokens=100000)
             db.insert(table=TABLE_NAME, column_values=reg_data)
+            db.insert(table=TABLE_NAME_FOR_MESSAGES, column_values={"user_id": callback.from_user.id,
+                                                                    "messages": "[]",
+                                                                    "tokens": 100000,
+                                                                    "max_tokens": 0})
         else:
             db.update_values(table=TABLE_NAME, values=reg_data, params={"user_id": userid})
     await state.clear()

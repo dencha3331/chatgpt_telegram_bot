@@ -8,6 +8,7 @@ from db import DateBase
 from lexicons import LEXICON_RU
 
 lexicon: dict[str, str] = LEXICON_RU['user_handlers']
+DB_PATH = "db/db_bot.db"
 
 
 async def chatgpt_answer(user_message: str, userid: int) -> str:
@@ -16,13 +17,10 @@ async def chatgpt_answer(user_message: str, userid: int) -> str:
     and saves their number to the 'users' table
     return string response from chatGPT or exception string
     """
-    DB_PATH = "db/db_bot.db"
     openai.api_key = load_config().open_ai.token  # API openAI
     with DateBase(DB_PATH) as db:
         try:
             model = "gpt-3.5-turbo-0301"
-            if userid not in db.get_column("users", "user_id"):
-                return "Пройдите регистрацию"
             chat_messages = json.loads(db.get_cell_value("messages_chatgpt", "messages", ("user_id", userid)))
             chat_messages.append({'role': 'user', 'content': user_message})
             if count_tokens_from_messages(chat_messages, model) > 3000:
@@ -53,7 +51,7 @@ async def chatgpt_answer(user_message: str, userid: int) -> str:
             return chatgpt_response['content']
 
         except Exception as e:
-            logger.error(f"error in answer: {e}")
+            logger.error(f"error in chatgpt.py chatgpt_answer: {e}")
             logger.error(f"type: {type(e)}")
             return lexicon['something_wrong']
 

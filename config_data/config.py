@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from aiogram import Bot
 from dataclasses import dataclass
 from environs import Env

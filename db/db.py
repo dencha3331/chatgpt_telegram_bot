@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sqlite3
 
 
@@ -25,7 +27,7 @@ class DateBase:
         self.cursor.execute(f"""UPDATE {table} SET {', '.join(list_values)} WHERE {' AND '.join(set_where)};""", row)
         self.connection.commit()
 
-    def get_cell_value(self, table: str, cell: str, finder_param: tuple):
+    def get_cell_value(self, table: str, cell: str, finder_param: tuple) -> str | int | None:
         """Get value one cell"""
         self.cursor.execute(f"SELECT {cell} FROM {table} WHERE {finder_param[0]} = ?", (finder_param[1],))
         return self.cursor.fetchone()[0]

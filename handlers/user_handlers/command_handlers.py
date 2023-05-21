@@ -6,7 +6,6 @@ from logs import logger
 from lexicons import LEXICON_RU
 from db import DateBase
 
-
 DB_PATH = "db/db_bot.db"
 
 LEXICON: dict[str, str] = LEXICON_RU['user_handlers']
@@ -66,6 +65,3 @@ async def process_showdata_command(message: Message):
                                       f'{LEXICON["show_db_tokens"]}: {row["tokens"]}\n')
         else:
             await message.answer(text=LEXICON["empty_db"])
-
-
-

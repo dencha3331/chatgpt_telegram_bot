@@ -5,10 +5,11 @@ from .weather import *
 
 __all__ = (
     "count_tokens_from_messages",
-    # "chatgpt_router",
     "chatgpt_answer",
     "process_voice_message",
     "get_weather",
-    "check_tokens"
+    "check_tokens",
+    "check_max_tokens",
+    "check_user"
 )
 

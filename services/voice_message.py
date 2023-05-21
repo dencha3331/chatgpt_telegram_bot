@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from logs import logger
 from io import BytesIO
 import soundfile as sf
@@ -25,6 +27,6 @@ async def process_voice_message(voice: bytes) -> str | None:
         return result_str
 
     except Exception as e:
-        logger.error(e)
+        logger.error(f"error in process_voice_message: {e}")
         logger.error(f"type_error: {type(e)}")
         return
