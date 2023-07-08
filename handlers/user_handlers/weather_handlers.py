@@ -1,4 +1,3 @@
-from aiogram.filters.state import State, StatesGroup
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
@@ -8,25 +7,22 @@ from geopy.geocoders import Nominatim
 
 from services import get_weather
 from lexicons import LEXICON_RU
+from states import WeatherState
 
 LEXICON: dict[str, str] = LEXICON_RU['weather_handlers']
 
 weather_router: Router = Router()
 
 
-class WeatherState(StatesGroup):
-    get_weather = State()
-
-
 @weather_router.message(Command(commands='weather'), StateFilter(default_state))
-async def get_weather_command(message: Message, state: FSMContext):
+async def get_weather_command(message: Message, state: FSMContext) -> None:
     """The weather command handler puts it in the get weather state"""
     await message.answer(LEXICON["get_weather_command"])
     await state.set_state(WeatherState.get_weather)
 
 
 @weather_router.message(StateFilter(WeatherState.get_weather), F.location | F.text)
-async def get_weather_correct_data(message: Message, state: FSMContext):
+async def get_weather_correct_data(message: Message, state: FSMContext) -> None:
     """Getting a weather forecast from the openweather website"""
     geolocator = Nominatim(user_agent="my_personal_bot/v1.23")
     if message.location:
@@ -46,6 +42,6 @@ async def get_weather_correct_data(message: Message, state: FSMContext):
 
 
 @weather_router.message(StateFilter(WeatherState.get_weather))
-async def get_weather_wrong_data(message: Message):
+async def get_weather_wrong_data(message: Message) -> None:
     """Incorrect city data entry"""
     await message.answer(LEXICON["get_weather_wrong_data"])

@@ -7,6 +7,10 @@ def get_weather(latitude: float, longitude: float) -> str:
                             f"windspeed_10m,windgusts_10m&daily=sunrise,sunset&current_weather=true&"
                             f"forecast_days=3&timezone=auto").json()
 
+    return _parse_weather(response)
+
+
+def _parse_weather(response):
     res = response["hourly"]
     sunset_sunrise = response["daily"]
     messages = []

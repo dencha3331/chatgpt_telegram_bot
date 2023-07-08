@@ -9,8 +9,8 @@ from lexicons import LEXICON_RU
 LEXICON: dict[str, str] = LEXICON_RU['buttons']
 
 
-def create_inline_kb(width: int, *args: str,
-                     last_btn: dict | None = None, **kwargs: str) -> InlineKeyboardMarkup:
+def create_inline_callback_data_kb(width: int, *args: str,
+                                   last_btn: dict | None = None, **kwargs: str) -> InlineKeyboardMarkup:
     try:
         """Generator function to create a InlineKeyboard"""
         kb_builder: InlineKeyboardBuilder = InlineKeyboardBuilder()

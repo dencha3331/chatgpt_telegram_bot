@@ -9,7 +9,7 @@ import vosk
 """Надо сделать через FSM чтоб пока не будет верного текста не отправлять в chatgpt_answer"""
 
 
-async def process_voice_message(voice: bytes) -> str | None:
+async def process_voice_to_text(voice: bytes) -> str | None:
     """
     Function translate voice to text and call func chatgpt_answer with received data
     """

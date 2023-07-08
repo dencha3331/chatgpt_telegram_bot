@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-LEXICON_RU: dict[str, dict[str, str | dict[str, str]]] = {
+LEXICON_RU: dict[str, dict[str, str]] = {
     "user_handlers": {
         '/start': 'Привет я личный виртуальный помощник Великолепного человека Дениса Черного.\n'
                   'Моя задача - помогать ему в ответах на его вопросы и выполнении задач.\n',
@@ -26,13 +26,14 @@ LEXICON_RU: dict[str, dict[str, str | dict[str, str]]] = {
         "male": "Мужской",
         "female": "Женский",
         "undefined_gender": "Пока не ясно",
-
+        "cancel_fill_form_state": 'Отмена. Если хотите возобновить откройте меню в левом нижнем углу и'
+                                  'выберите необходимый пункт',
     },
 
     "registration_handlers": {
         "cancel_default_state": 'Отменять нечего.',
-        "cancel_fillform_state": 'Отмена. Если хотите возобновить откройте меню в левом нижнем углу и'
-                                 'выберите необходимый пункт',
+        "cancel_fill_form_state": 'Отмена. Если хотите возобновить откройте меню в левом нижнем углу и'
+                                  'выберите необходимый пункт',
         "enter_name": "Пожалуйста, введите ваше имя",
         "enter_surname": "Теперь фамилию",
         "enter_age": "А теперь введите ваш возраст",
@@ -66,7 +67,7 @@ LEXICON_RU: dict[str, dict[str, str | dict[str, str]]] = {
         "empty_db": 'Вы еще не заполняли анкету. '
                     'Чтобы приступить - отправьте '
                     'команду /registration',
-        "inline_process_fillform_command_update": "Вы зарегистрированы!!!\nХотите обновить данные?",
+        "inline_process_fill_form_command_update": "Вы зарегистрированы!!!\nХотите обновить данные?",
         "update_reg_date_no": "Всего доброго если в дальнейшем захотите поменять данные просто нажмите регистрация"
                               "по кнопки меню в левом нижнем углу",
         "negative_update_reg_data": "Нажмите да или нет либо /cancel для отмены",

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-from aiogram.fsm.storage.redis import RedisStorage, Redis
+from redis.asyncio.client import Redis
+from aiogram.fsm.storage.redis import RedisStorage
 from aiogram import Dispatcher
 import asyncio
 
-from db import DateBase
 from logs import logger
 from config_data.config import bot
 from keyboards import set_main_menu
@@ -14,27 +14,6 @@ from handlers import (command_router,
                       text_router,
                       voice_router,
                       other_router)
-
-DB_PATH = "db/db_bot.db"
-
-table_name_chatgpt = "messages_chatgpt"
-table_column_chatgpt = {"user_id": "INTEGER",
-                        "messages": "TEXT",
-                        "tokens": "INTEGER",
-                        "max_tokens": "INTEGER"}
-
-table_name_users = "users"
-table_column_users = {"user_id": "INTEGER",
-                      "tokens": "INTEGER",
-                      "name": "TEXT",
-                      "surname": "TEXT",
-                      "age": "INTEGER",
-                      "gender": "TEXT",
-                      "wish_news": "INTEGER"}
-
-with DateBase(DB_PATH) as db:
-    db.create_table(table_name_chatgpt, table_column_chatgpt)
-    db.create_table(table_name_users, table_column_users)
 
 
 async def main():
