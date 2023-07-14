@@ -8,6 +8,7 @@ from config_data import load_config
 from services import Checking
 from db import DateBase
 from lexicons import LEXICON_RU
+from errors import ChatgptAnswerErrors
 
 lexicon: dict[str, str] = LEXICON_RU['user_handlers']
 DB_PATH = "db/db_bot.db"
@@ -56,7 +57,7 @@ async def chatgpt(name: int | str, text: str,
 def chatgpt_answer(name: int | str,
                    text: str,
                    messages: list[dict] | None = None,
-                   model="gpt-3.5-turbo") -> GptResponse:
+                   model="gpt-4") -> GptResponse | None:
     try:
         if messages is None:
             messages = []
@@ -81,6 +82,7 @@ def chatgpt_answer(name: int | str,
                            total_tokens=total_tokens)
     except Exception as e:
         logger.error(f"error in chatgpt.py chatgpt_answer: {e}")
+        raise ChatgptAnswerErrors(str(e))
 
 
 def _get_messages_from_db(user_name: str | int) -> list[dict]:
@@ -98,7 +100,7 @@ def _checking_count_max_tokens_in_message(user_name: int | str,
                                      "max_tokens", ("user_id", user_name,)):
                 db.update_values("messages_chatgpt", {"max_tokens": 1},
                                  {"user_id": user_name})
-            while Checking.count_tokens_from_messages(chat_messages, model) > 2000:
+            while Checking.count_tokens_from_messages(chat_messages, model) > 3000:
                 chat_messages.pop(0)
 
 
