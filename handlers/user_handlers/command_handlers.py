@@ -5,12 +5,12 @@ from aiogram.fsm.state import default_state
 from aiogram.fsm.context import FSMContext
 
 from db import DateBase
-from keyboards import KeyboardProcessFillFormUpdate
-from states import FSMRegistrationFillForm
+from keyboards import KeyboardProcessFillFormUpdate, KeyboardChosePayMethod
+from states import FSMRegistrationFillForm, PayWMState
 from logs import logger
 from lexicons import LEXICON_RU
 from services import Checking, WorkingDb
-from errors import MessageFromUserIsNone
+from errors import MessageFromUserIsNone, UserNotRegistration
 
 
 DB_PATH = "db/db_bot.db"
@@ -19,6 +19,7 @@ LEXICON: dict[str, str] = LEXICON_RU['user_handlers']
 TABLE_NAME: str = "users"
 command_router: Router = Router()
 registration_state: FSMRegistrationFillForm = FSMRegistrationFillForm()
+payment_state: PayWMState = PayWMState()
 
 
 @command_router.message(Command(commands='cancel'), StateFilter(default_state))
@@ -31,7 +32,8 @@ async def process_cancel_command(message: Message) -> None:
 async def process_cancel_command_state(message: Message, state: FSMContext) -> None:
     """Handler of "/cancel" command in any states"""
     logger.info(f"Cancel registration user: user id "
-                f"{message.from_user.id if message.from_user else 'unknown'}")
+                f"{message.from_user.id or 'unknown'}")
+                # f"{message.from_user.id if message.from_user else 'unknown'}")
     await message.answer(text=LEXICON['cancel_fill_form_state'])
     await state.clear()
 
@@ -39,8 +41,10 @@ async def process_cancel_command_state(message: Message, state: FSMContext) -> N
 @command_router.message(CommandStart())
 async def welcome_command(message: Message) -> None:
     """ Command /start send start message """
-    name = message.from_user.first_name if message.from_user else ""
-    userid = message.from_user.id if message.from_user else ""
+    # name = message.from_user.first_name if message.from_user else ""
+    name = message.from_user.first_name or ""
+    # userid = message.from_user.id if message.from_user else ""
+    userid = message.from_user.id or ""
     logger.info(f"start chat for {name}({userid})")
     await message.answer(f"{name}!\n{LEXICON['/start']}")
 
@@ -79,7 +83,7 @@ async def process_fill_form_command(message: Message, state: FSMContext) -> None
         with DateBase(DB_PATH) as db:
             users_id: tuple[int] = db.get_column(table=TABLE_NAME, name_column="user_id")
         if userid not in users_id:
-            await state.update_data(user_id=userid)
+            await state.update_data(id=userid)
             await message.answer(text=LEXICON['enter_name'])
             await state.set_state(registration_state.fill_name)
         else:
@@ -89,6 +93,21 @@ async def process_fill_form_command(message: Message, state: FSMContext) -> None
             await state.set_state(registration_state.fill_update_reg_data)
     except MessageFromUserIsNone:
         pass
+
+    #
+    #     with DateBase(DB_PATH) as db:
+    #         users_id: tuple[int] = db.get_column(table=TABLE_NAME, name_column="user_id")
+    #     if userid not in users_id:
+    #         await state.update_data(user_id=userid)
+    #         await message.answer(text=LEXICON['enter_name'])
+    #         await state.set_state(registration_state.fill_name)
+    #     else:
+    #         keyboard = KeyboardProcessFillFormUpdate()
+    #         await message.answer(text=keyboard.text,
+    #                              reply_markup=keyboard.markup)
+    #         await state.set_state(registration_state.fill_update_reg_data)
+    # except MessageFromUserIsNone:
+    #     pass
 
 
 @command_router.message(Command(commands='showdata'))
@@ -103,3 +122,27 @@ async def process_showdata_command(message: Message) -> None:
         logger.error(e)
     except Exception as e:
         logger.debug(e)
+
+
+@command_router.message(Command(commands="pay"), StateFilter(default_state))
+async def pay_wm(message: Message, state: FSMContext) -> None:
+    """Call payment"""
+    try:
+        await Checking.check_message_from_user_not_none(message)
+        userid: int = message.from_user.id
+        logger.info(f"Start payment: user_id {userid}")
+
+        await Checking.check_user_not_in_db(message)
+        await state.update_data(user_id=userid)
+        keyboard = KeyboardChosePayMethod()
+        await message.answer(text=keyboard.text,
+                             reply_markup=keyboard.markup)
+        await state.set_state(payment_state.fill_method)
+
+    except (MessageFromUserIsNone, UserNotRegistration):
+        pass
+
+
+@command_router.message(Command(commands="webapp"))
+async def webapp(message: Message):
+    pass

@@ -9,7 +9,7 @@ __all__ = (
     'weather_router',
     'other_router',
     'voice_router',
-    'text_router'
+    'text_router',
+    "payment_router"
 )
-
 

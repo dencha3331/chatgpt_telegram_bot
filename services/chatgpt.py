@@ -59,8 +59,9 @@ def chatgpt_answer(name: int | str,
                    messages: list[dict] | None = None,
                    model="gpt-4") -> GptResponse | None:
     try:
-        if messages is None:
-            messages = []
+        # if messages is None:
+        #     messages = []
+        messages = messages or []
         messages.append({'role': 'user', 'content': text})
         openai.api_key = load_config().open_ai.token  # API openAI
         completion = openai.ChatCompletion.create(
@@ -92,10 +93,10 @@ def _get_messages_from_db(user_name: str | int) -> list[dict]:
     return json.loads(messages)
 
 
-def _checking_count_max_tokens_in_message(user_name: int | str,
-                                          chat_messages: list[dict], model="gpt-3.5-turbo"):
+def _checking_count_max_tokens_in_message(user_name: int | str, chat_messages: list[dict],
+                                          count: int = 3000, model="gpt-3.5-turbo"):
     with DateBase(DB_PATH) as db:
-        if Checking.count_tokens_from_messages(chat_messages, model) > 3000:
+        if Checking.count_tokens_from_messages(chat_messages, model) > count:
             if not db.get_cell_value("messages_chatgpt",
                                      "max_tokens", ("user_id", user_name,)):
                 db.update_values("messages_chatgpt", {"max_tokens": 1},

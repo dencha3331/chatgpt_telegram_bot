@@ -9,6 +9,10 @@ __all__ = (
     "KeyboardProcessFillFormUpdate",
     "KeyboardEnterGender",
     "KeyboardWontNews",
+    "KeyboardChosePayMethod",
+    "CardPriceKB",
+    "LinkPayWMKB",
+
 )
 
 

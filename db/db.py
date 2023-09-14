@@ -25,12 +25,16 @@ class DateBase:
         list_values = [f"{key} = ?" for key in values]
         set_where = [f"{key} = '{val}'" for key, val in params.items()]
         row = tuple(values.values())
-        self.cursor.execute(f"""UPDATE {table} SET {', '.join(list_values)} WHERE {' AND '.join(set_where)};""", row)
+        self.cursor.execute(
+            f"UPDATE {table} SET {', '.join(list_values)} WHERE {' AND '.join(set_where)};",
+            row)
         self.connection.commit()
 
     def get_cell_value(self, table: str, cell: str, finder_param: tuple) -> Any:
         """Get value one cell"""
-        self.cursor.execute(f"SELECT {cell} FROM {table} WHERE {finder_param[0]} = ?", (finder_param[1],))
+        self.cursor.execute(
+            f"SELECT {cell} FROM {table} WHERE {finder_param[0]} = ?",
+            (finder_param[1],))
         return self.cursor.fetchone()[0]
 
     def get_column(self, table: str, name_column: str) -> tuple:
@@ -47,7 +51,8 @@ class DateBase:
         """Get row"""
         set_where = [f"{key} = ?" for key in search_param]
         row = tuple(search_param.values())
-        self.cursor.execute(f"SELECT {', '.join(name_column)} FROM {table} WHERE {' AND '.join(set_where)}", row)
+        self.cursor.execute(
+            f"SELECT {', '.join(name_column)} FROM {table} WHERE {' AND '.join(set_where)}", row)
         rows = self.cursor.fetchall()
         dict_row = {}
         for row in rows:
