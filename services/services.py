@@ -17,7 +17,7 @@ LEXICON: dict[str, str] = LEXICON_RU['user_handlers']
 
 class Checking:
     @staticmethod
-    def count_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
+    def count_tokens_from_messages(messages, model="gpt-3.5"):
         """Returns the number of tokens used by a list of messages."""
         try:
             encoding = tiktoken.encoding_for_model(model)
@@ -34,7 +34,8 @@ class Checking:
             num_tokens += 2  # every reply is primed with <im_start>assistant
             return num_tokens
         else:
-            raise NotImplementedError(f"""num_tokens_from_messages() is not presently implemented for model {model}.""")
+            raise NotImplementedError(f"""num_tokens_from_messages() is not presently 
+            implemented for model {model}.""")
 
     @staticmethod
     async def check_total_tokens(message: Message | CallbackQuery) -> None:
@@ -42,7 +43,8 @@ class Checking:
         try:
             userid: int = message.from_user.id
             with DateBase(DB_PATH) as db:
-                tokens = db.get_cell_value("messages_chatgpt", "tokens", ("user_id", userid))
+                tokens = db.get_cell_value("messages_chatgpt", "tokens",
+                                           ("user_id", userid))
                 if tokens and tokens < 10000:
                     await message.answer(f"У вас осталось {tokens} токенов")
         except Exception as e:
@@ -54,9 +56,11 @@ class Checking:
         with DateBase(DB_PATH) as db:
             try:
                 userid: int = message.from_user.id
-                max_tokens = db.get_cell_value("messages_chatgpt", "max_tokens", ("user_id", userid,))
+                max_tokens = db.get_cell_value("messages_chatgpt", "max_tokens",
+                                               ("user_id", userid,))
                 if max_tokens and max_tokens == 1:
-                    db.update_values("messages_chatgpt", {"max_tokens": 2}, {"user_id": userid})
+                    db.update_values("messages_chatgpt", {"max_tokens": 2},
+                                     {"user_id": userid})
                     await message.answer(lexicon['tokens_limit'])
             except Exception as e:
                 logger.error(f"error in services.py check_max_tokens: {e}")
@@ -94,6 +98,7 @@ class WorkingDb:
                                                                         "messages": "[]",
                                                                         "tokens": 100000,
                                                                         "max_tokens": 0})
+
             else:
                 db.update_values(table=TABLE_NAME, values=reg_data, params={"user_id": userid})
 

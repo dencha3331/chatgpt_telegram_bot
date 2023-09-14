@@ -34,6 +34,9 @@ LEXICON_RU: dict[str, dict[str, str]] = {
         "cancel_fill_form_state": 'Отмена. Если хотите возобновить откройте меню в левом нижнем углу и'
                                   'выберите необходимый пункт',
         "enter_name": "Пожалуйста, введите ваше имя",
+        "empty_db": 'Вы еще не заполняли анкету. '
+                    'Чтобы приступить - отправьте '
+                    'команду /registration',
     },
 
     "registration_handlers": {
@@ -77,7 +80,7 @@ LEXICON_RU: dict[str, dict[str, str]] = {
         "update_reg_date_no": "Всего доброго если в дальнейшем захотите поменять данные просто нажмите регистрация"
                               "по кнопки меню в левом нижнем углу",
         "negative_update_reg_data": "Нажмите да или нет либо /cancel для отмены",
-
+        "chose_payment_method": "Выберите способ оплаты",
     },
     'voice_handlers': {
         "something_wrong": "Что то пошло не так придется повторить"
@@ -98,6 +101,11 @@ LEXICON_RU: dict[str, dict[str, str]] = {
         "get_weather_wrong_data": "Не корректный ввод! Введите название города или пришлите геолокацию. "
                                   "Для отмены нажмите /cancel"
     },
+
+    "payment_wm": {
+        "chose_price": "Оплатить картой можно только:"
+    },
+
     'buttons': {
         'male': 'Мужской ♂',
         "female": "Женский ♀",
@@ -109,7 +117,8 @@ LEXICON_RU: dict[str, dict[str, str]] = {
         'no_news': 'Нет, спасибо',
         'yes': "Да",
         'no': "Нет",
-
+        'card': "Карта",
+        "wm_wallet": "Кошелек WebMoney",
     },
 
 }

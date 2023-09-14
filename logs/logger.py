@@ -15,18 +15,33 @@ class MyLogger:
         console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(formatter)
 
+        # Создаем катологи для логов
+        os.makedirs(f"{log_dir}/debug", exist_ok=True)
+        os.makedirs(f"{log_dir}/info", exist_ok=True)
+        os.makedirs(f"{log_dir}/warning", exist_ok=True)
+        os.makedirs(f"{log_dir}/error", exist_ok=True)
+
         # Создаем и настраиваем обработчики файловых логов
-        debug_handler = logging.handlers.TimedRotatingFileHandler(os.path.join(log_dir, 'debug.log'), when='midnight', backupCount=0)
+        debug_handler = logging.handlers.TimedRotatingFileHandler(
+            os.path.join(f"{log_dir}/debug", 'debug.log'), when='midnight', backupCount=0)
         debug_handler.suffix = '%Y-%m-%d'
         debug_handler.setLevel(logging.DEBUG)
         debug_handler.setFormatter(formatter)
 
-        info_handler = logging.handlers.TimedRotatingFileHandler(os.path.join(log_dir, 'info.log'), when='midnight', backupCount=0)
+        info_handler = logging.handlers.TimedRotatingFileHandler(
+            os.path.join(f"{log_dir}/info", 'info.log'), when='midnight', backupCount=0)
         info_handler.suffix = '%Y-%m-%d'
         info_handler.setLevel(logging.INFO)
         info_handler.setFormatter(formatter)
 
-        warning_handler = logging.handlers.TimedRotatingFileHandler(os.path.join(log_dir, 'warning.log'), when='midnight', backupCount=0)
+        warning_handler = logging.handlers.TimedRotatingFileHandler(
+            os.path.join(f"{log_dir}/warning", 'warning.log'), when='midnight', backupCount=0)
+        warning_handler.suffix = '%Y-%m-%d'
+        warning_handler.setLevel(logging.WARNING)
+        warning_handler.setFormatter(formatter)
+
+        error_handler = logging.handlers.TimedRotatingFileHandler(
+            os.path.join(f"{log_dir}/error", 'error.log'), when='midnight', backupCount=0)
         warning_handler.suffix = '%Y-%m-%d'
         warning_handler.setLevel(logging.WARNING)
         warning_handler.setFormatter(formatter)
@@ -35,6 +50,7 @@ class MyLogger:
         self.logger.addHandler(debug_handler)
         self.logger.addHandler(info_handler)
         self.logger.addHandler(warning_handler)
+        self.logger.addHandler(error_handler)
         self.logger.addHandler(console_handler)
 
     def debug(self, message):

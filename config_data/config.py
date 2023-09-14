@@ -28,7 +28,7 @@ class OpenAI:
 class Config:
     tg_bot: TgBot
     open_ai: OpenAI
-    # db: DatabaseConfig
+    db: DatabaseConfig
 
 
 def load_config(path: str | None = None) -> Config:
@@ -38,6 +38,10 @@ def load_config(path: str | None = None) -> Config:
     return Config(
         tg_bot=TgBot(token=env('BOT_TOKEN')),
         open_ai=OpenAI(env('OPENAI_API_KEY')),
+        db=DatabaseConfig(database=env('POSTGRES_DB'),
+                          db_host='localhost:5432',
+                          db_user=env('POSTGRES_USER'),
+                          db_password=env('POSTGRES_PASSWORD'))
     )
 
 

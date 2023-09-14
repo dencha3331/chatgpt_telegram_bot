@@ -1,5 +1,6 @@
 from .services import *
-from .chatgpt import *
+# from .chatgpt import *
+from .async_chatgpt import *
 from .voice_message import *
 from .weather import *
 

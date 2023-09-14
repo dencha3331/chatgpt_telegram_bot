@@ -41,3 +41,6 @@ websockets==11.0.1
 yarl==1.8.2
 
 pony~=0.7.16
+SQLAlchemy~=2.0.19
+uvicorn~=0.23.1
+fastapi~=0.100.1

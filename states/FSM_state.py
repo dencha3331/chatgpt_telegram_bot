@@ -17,3 +17,9 @@ class WeatherState(StatesGroup):
 
 class VoiceState(StatesGroup):
     correct_text = State()
+
+
+class PayWMState(StatesGroup):
+    fill_method = State()
+    fill_price = State()
+    fill_end = State()

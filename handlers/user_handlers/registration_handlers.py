@@ -103,7 +103,7 @@ async def warning_not_correct_gender(message: Message) -> None:
 async def process_wish_news_press(callback: CallbackQuery, state: FSMContext) -> None:
     """Handler for choosing to receive or not receive news, output from the state machine
     and add to the database"""
-    await state.update_data(wish_news=1 if callback.data == 'yes_news' else 0)
+    await state.update_data(wish_news=callback.data == 'yes_news')
     userid = callback.from_user.id
     reg_data = await state.get_data()
     WorkingDb.save_user_registration_data_in_db(userid, reg_data)

@@ -13,6 +13,7 @@ from handlers import (command_router,
                       weather_router,
                       text_router,
                       voice_router,
+                      payment_router,
                       other_router)
 
 
@@ -26,7 +27,8 @@ async def main():
     dp.include_router(registration_router)
     dp.include_router(weather_router)
     dp.include_router(voice_router)
-    dp.include_router(text_router)
+    # dp.include_router(text_router)
+    dp.include_router(payment_router)
     dp.include_router(other_router)
 
     await set_main_menu(bot)
