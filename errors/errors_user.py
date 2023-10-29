@@ -19,3 +19,19 @@ class MessageFromUserIsNone(Exception):
 
     def __str__(self):
         return self.message
+
+
+class ChangeModel(Exception):
+    def __init__(self, message: str | None = None):
+        self.message = "Сменить или оставить модель" if not message else message
+
+    def __str__(self):
+        return self.message
+
+
+class DialogIdNotInDB(Exception):
+    def __init__(self, message: str | None = None):
+        self.message = "Dialog id not in db" if not message else message
+
+    def __str__(self):
+        return self.message

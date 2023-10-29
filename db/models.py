@@ -54,7 +54,7 @@ class Users(Base):
     name: Mapped[str] = mapped_column(String(30))
     surname: Mapped[str | None]
     age: Mapped[int | None]
-    email: Mapped[str] = mapped_column(String(30), unique=True)
+    email: Mapped[str | None] = mapped_column(String(30), unique=True)
     gender: Mapped[str | None]
     wish_news: Mapped[bool | None]
     create_date: Mapped[datetime.datetime] = mapped_column(
@@ -79,7 +79,7 @@ class Dialog(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name_chat: Mapped[str | None] = mapped_column(String(30))
     messages: Mapped[JSON] = mapped_column(JSON, default=[])
-    model: Mapped[str | None] = mapped_column(String(30))
+    model: Mapped[str] = mapped_column(String(30), default="gpt-3.5-turbo")
     images: Mapped[JSON] = mapped_column(JSON, default=[])
     max_tokens: Mapped[int] = mapped_column(Integer, default=0)
     current_dialog: Mapped[bool] = mapped_column(default=False)
@@ -137,3 +137,5 @@ class Transaction(Base):
         back_populates="wallet_transactions"
     )
 
+
+# Base.metadata.create_all()

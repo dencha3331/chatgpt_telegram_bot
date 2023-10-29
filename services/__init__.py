@@ -5,7 +5,7 @@ from .voice_message import *
 from .weather import *
 
 __all__ = (
-    "chatgpt",
+    "chatgpt_for_tg",
     "process_voice_to_text",
     "get_weather",
     "Checking",

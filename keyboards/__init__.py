@@ -6,13 +6,16 @@ from .keyboards import *
 __all__ = (
     "set_main_menu",
     "create_inline_callback_data_kb",
-    "KeyboardProcessFillFormUpdate",
+    "KeyboardProcessFillUserFormUpdate",
     "KeyboardEnterGender",
     "KeyboardWontNews",
     "KeyboardChosePayMethod",
     "CardPriceKB",
     "LinkPayWMKB",
-
+    "ChangeModelOverflowKeyboard",
+    "ChangeModelKeyboard",
+    "ChoiceDialogKeyboard",
+    "ConfirmDeleteAllDialogsKeyboard"
 )
 
 

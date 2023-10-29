@@ -5,7 +5,7 @@ from aiogram.fsm.state import default_state
 from aiogram.fsm.context import FSMContext
 
 from db import DateBase
-from keyboards import KeyboardProcessFillFormUpdate, KeyboardChosePayMethod
+from keyboards import KeyboardProcessFillUserFormUpdate, KeyboardChosePayMethod
 from states import FSMRegistrationFillForm, PayWMState
 from logs import logger
 from lexicons import LEXICON_RU
@@ -87,7 +87,7 @@ async def process_fill_form_command(message: Message, state: FSMContext) -> None
             await message.answer(text=LEXICON['enter_name'])
             await state.set_state(registration_state.fill_name)
         else:
-            keyboard = KeyboardProcessFillFormUpdate()
+            keyboard = KeyboardProcessFillUserFormUpdate()
             await message.answer(text=keyboard.text,
                                  reply_markup=keyboard.markup)
             await state.set_state(registration_state.fill_update_reg_data)

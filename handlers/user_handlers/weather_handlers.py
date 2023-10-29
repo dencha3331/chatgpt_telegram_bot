@@ -17,6 +17,7 @@ weather_router: Router = Router()
 @weather_router.message(Command(commands='weather'), StateFilter(default_state))
 async def get_weather_command(message: Message, state: FSMContext) -> None:
     """The weather command handler puts it in the get weather state"""
+    await message.delete()
     await message.answer(LEXICON["get_weather_command"])
     await state.set_state(WeatherState.get_weather)
 

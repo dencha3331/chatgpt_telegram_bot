@@ -11,7 +11,7 @@ from config_data import bot
 from lexicons import LEXICON_RU
 from errors import UserNotRegistration
 from states import VoiceState
-from services import process_voice_to_text, Checking, chatgpt
+from services import process_voice_to_text, Checking, chatgpt_for_tg
 
 LEXICON: dict[str, str] = LEXICON_RU['user_handlers']
 voice_router: Router = Router()
@@ -48,7 +48,7 @@ async def process_correct_text(callback: CallbackQuery, state: FSMContext):
         processing_message = await callback.message.edit_text(LEXICON['processing_message'])
         try:
             text: str = callback.message.text.split("\n")[1]
-            answer_chatgpt = await chatgpt(user_id, text)
+            answer_chatgpt = await chatgpt_for_tg(user_id, text)
             logger.info(f"{callback.from_user.id}, {callback.message.from_user.id}, {callback.message.text}")
             logger.info(f"{text}, {user_id}")
             await Checking.check_tokens(callback)

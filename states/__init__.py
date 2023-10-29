@@ -5,7 +5,9 @@ __all__ = (
     "FSMRegistrationFillForm",
     "WeatherState",
     "VoiceState",
-    "PayWMState"
+    "PayWMState",
+    "CommandState",
+    "TextHandChangeOrLeaveModel"
 )
 
 

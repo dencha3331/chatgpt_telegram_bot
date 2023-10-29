@@ -5,10 +5,8 @@ from aiogram.types import CallbackQuery, Message
 
 from lexicons import LEXICON_RU
 from states import FSMRegistrationFillForm
-# from services import WorkingDb
 from db.async_crud import Crud
-from keyboards import (KeyboardWontNews,
-                       KeyboardEnterGender, )
+import keyboards
 
 # Variables for cues and buttons
 LEXICON: dict[str, str] = LEXICON_RU['registration_handlers']
@@ -68,8 +66,8 @@ async def warning_not_correct_surname(message: Message) -> None:
                              lambda x: x.text.isdigit() and 4 <= int(x.text) <= 120)
 async def process_age_sent(message: Message, state: FSMContext) -> None:
     """Age correct input handler, switches to gender selection state"""
-    await state.update_data(age=message.text)
-    keyboard = KeyboardEnterGender()
+    await state.update_data(age=int(message.text))
+    keyboard = keyboards.KeyboardEnterGender()
     await message.answer(text=keyboard.text,
                          reply_markup=keyboard.markup)
     await state.set_state(registration_state.fill_gender)
@@ -88,7 +86,7 @@ async def process_gender_press(callback: CallbackQuery, state: FSMContext) -> No
     """The handler of the correct input of the selected education and
     transfers to the state of receiving news"""
     await state.update_data(gender=callback.data)
-    keyboard = KeyboardWontNews()
+    keyboard = keyboards.KeyboardWontNews()
     await callback.message.edit_text(text=keyboard.text,
                                      reply_markup=keyboard.markup)
     await state.set_state(registration_state.fill_wish_news)

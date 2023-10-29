@@ -1,16 +1,24 @@
 from __future__ import annotations
 import openai
+from openai import OpenAIError
 from dataclasses import dataclass
 
 from logs import logger
 from config_data import load_config
 from services import Checking
 from db.async_crud import Crud
-from db.models import Dialog, Wallet
+from db.models import Dialog, Wallet, Users
 from lexicons import LEXICON_RU
-from errors import ChatgptAnswerErrors
+from errors import ChatgptAnswerErrors, NegativeBalance, ChangeModel
 
 lexicon: dict[str, str] = LEXICON_RU['user_handlers']
+
+models: dict[str, dict[str, float]] = {
+    'gpt-3.5-turbo': {"in": 0.0015, "out": 0.002, "tokens": 3000},
+    'gpt-3.5-turbo-16k': {"in": 0.003, "out": 0.004, "tokens": 15000},
+    'gpt-4': {"in": 0.03, "out": 0.06, "tokens": 7000},
+    'gpt-4-32k': {"in": 0.06, "out": 0.12, "tokens": 31000}
+}
 
 
 @dataclass(frozen=True)
@@ -21,45 +29,62 @@ class GptResponse:
     total_tokens: int
 
 
-async def chatgpt(name: int | str, text: str,
-                  model="gpt-3.5-turbo") -> str:
+async def chatgpt_for_tg(tg_id: int, text: str | None = None) -> str:
     """
-    Interaction with gpt, saves messages
-    to the database, calculates the balance of tokens
-    and saves their number to the 'users' table
-    return string response from chatGPT or exception string
+    Getting user data, send current dialog to OpenAi and write processed data to database
     """
     try:
-        user_name: int | str = name
-        user_message: str = text
-        openai.api_key = load_config().open_ai.token  # API openAI
-        messages: list[dict] = await _get_messages_from_db(user_name)
-        if not messages:
-            pass
-        messages.append({'role': 'user', 'content': user_message})
-        await _checking_count_max_tokens_in_message(user_name, messages)
-        chatgpt_response: GptResponse = chatgpt_answer(user_name, user_message,
-                                                       messages, model)
+        user: Users = await Crud.get_user_wallet_dialogs(tg_id)
+        if not user:
+            return "Пройдите регистрацию"
+        try:
+            dialog: Dialog = [dialog for dialog in user.dialogs if dialog.current_dialog][0]
+            if not text:
+                text: str = dialog.messages.pop(-1)["content"]
+        except IndexError:
+            text: str = text
+            dialog: Dialog = Dialog(name_chat=text[:20], user=user, messages=[],
+                                    model="gpt-3.5-turbo",
+                                    wallet=user.wallet, current_dialog=True)
+            user.dialogs.append(dialog)
+        if not dialog.name_chat:
+            dialog.name_chat = text[:20]
+        messages: list[dict] = dialog.messages
+        messages.append({'role': 'user', 'content': text})
+        balance_message: str | None = await _check_balance(user.wallet)
+        try:
+            token_message: str | None = await _checking_count_max_tokens_in_message(dialog, messages)
+        except ChangeModel:
+            dialog.messages = messages
+            await Crud.save_object(user)
+            raise ChangeModel
+        chatgpt_response: GptResponse = chatgpt_answer(user.id, messages, dialog.model)
         messages.append({'role': 'assistant', 'content': chatgpt_response.text})
-        await _save_data_messages_in_db(user_name, messages, chatgpt_response)
-        logger.info(f'ChatGPT response: {chatgpt_response.text}')
-        logger.info(f"{user_name}: Total tokens: {chatgpt_response.total_tokens}")
-
-        return chatgpt_response.text
-
-    except Exception as e:
+        dialog.messages = messages
+        await _calculate_payment(user, chatgpt_response)
+        await Crud.save_object(user)
+        logger.debug(f'ChatGPT response: {chatgpt_response.text}')
+        logger.debug(f"{user.id}:  prompt_tokens: {chatgpt_response.prompt_tokens},"
+                     f"completion_tokens: {chatgpt_response.completion_tokens}")
+        return "\n".join([str(message) for message in
+                          [balance_message, token_message, chatgpt_response.text] if message])
+    except NegativeBalance as e:
+        return str(e)
+    except OpenAIError as e:
         logger.error(f"error in chatgpt.py chatgpt: {e}")
         logger.error(f"type: {type(e)}")
-        return lexicon['something_wrong']
+        return str(e)
 
 
 def chatgpt_answer(name: int | str,
-                   text: str,
-                   messages: list[dict] | None = None,
-                   model="gpt-4") -> GptResponse | None:
+                   message: list[dict] | str,
+                   model="gpt-3.5-turbo") -> GptResponse | None:
+    """
+    Helper function for sending dialog to OpenIai
+    """
     try:
-        messages: list[dict] = messages or []
-        messages.append({'role': 'user', 'content': text})
+        messages: list[dict] = message if type(message) == list \
+            else [{'role': 'user', 'content': message}]
         openai.api_key = load_config().open_ai.token  # API openAI
         completion = openai.ChatCompletion.create(
             model=model,
@@ -83,37 +108,49 @@ def chatgpt_answer(name: int | str,
         raise ChatgptAnswerErrors(str(e))
 
 
-async def _get_messages_from_db(user_name: str | int) -> list[dict]:
-    return await Crud.select_cell(Dialog.messages, user_id=user_name)
-
-
-async def _checking_count_max_tokens_in_message(user_name: int | str, chat_messages: list[dict],
-                                                count: int = 3000, model="gpt-3.5-turbo"):
-    if Checking.count_tokens_from_messages(chat_messages, model) > count:
-        if not await Crud.select_cell(Dialog.max_tokens, user_id=user_name):
-            await Crud.update(Dialog(max_tokens=1), user_id=user_name)
-        while Checking.count_tokens_from_messages(chat_messages, model) > count:
+async def _checking_count_max_tokens_in_message(obj: Dialog,
+                                                chat_messages: list[dict]) -> None | str:
+    """
+    Checking the number of tokens and deleting the first messages if the
+    allowed number for sending is exceeded
+    """
+    print(obj.model)
+    if Checking.count_tokens_from_messages(chat_messages) > models[obj.model]["tokens"]:
+        if not obj.max_tokens:
+            obj.max_tokens = 1
+            raise ChangeModel
+        elif obj.max_tokens == 1:
+            obj.max_tokens = 2
+            return """Превышено максимальное количество токенов для отправки сообщения 
+                      сообщения будут постепенно удаляться по мере необходимости начиная с первого"""
+        while Checking.count_tokens_from_messages(chat_messages) > models[obj.model]["tokens"]:
             chat_messages.pop(0)
 
 
-async def _save_data_messages_in_db(user_name: int | str, chat_messages: list[dict],
-                                    message_tokens: GptResponse) -> None:
-    current_balance: float = await Crud.select_cell(Wallet.balance, users_id=user_name)
-    model: str = await Crud.select_cell(Dialog.model, user_id=user_name)
-    pay: float = await count_money(model, message_tokens)
+async def _calculate_payment(user: Users, message_tokens: GptResponse) -> None:
+    """
+    Counting money spent
+    """
+    model: str = [dialog.model for dialog in user.dialogs if dialog.current_dialog][-1]
+    wallet: Wallet = user.wallet
+    current_balance: float = wallet.balance
+    pay: float = await _count_money(model, message_tokens)
     final_balance = current_balance - pay
-    name_chat: str = chat_messages[-1]['content'][:20]
-    if not await Crud.select_cell(Dialog.name_chat, user_id=user_name,
-                                  current_dialog=True):
-        await call_name_dialog(user_name, name_chat)
-    await Crud.update(Dialog(messages=chat_messages), user_id=user_name)
-    await Crud.update(Wallet(balance=final_balance), user_id=user_name)
+    wallet.balance = final_balance
 
 
-async def count_money(model: str, tokens: GptResponse) -> float:
-    return (tokens.prompt_tokens / 1000 * 0.0015) + (tokens.completion_tokens / 1000 * 0.003)
+async def _count_money(model: str, tokens: GptResponse) -> float:
+    """
+    Calculating the cost of the current message
+    """
+    return ((tokens.prompt_tokens / 1000 * models[model]["in"]) +
+            (tokens.completion_tokens / 1000 * models[model]["out"]))
 
 
-async def call_name_dialog(userid, name):
-    await Crud.update(Dialog(name_chat=name), user_id=userid, current_dialog=True)
-
+async def _check_balance(wallet: Wallet) -> str | None:
+    """Check count tokens in send message and check tokens in db on table users"""
+    wallet: Wallet = wallet
+    if wallet.balance < 0.1:
+        return f"Ваш баланс скоро закончиться остаток: {wallet.balance}"
+    elif wallet.balance < 0:
+        raise NegativeBalance

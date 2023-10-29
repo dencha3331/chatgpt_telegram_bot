@@ -23,7 +23,7 @@ async def process_voice_to_text(voice: bytes) -> str | None:
         recognizer.AcceptWaveform(wav_data_bytesio)
         result = recognizer.FinalResult()
         result_str = json.loads(result)['text']
-        logger.info(f"vosk_text: {result_str}")
+        logger.debug(f"vosk_text: {result_str}")
         return result_str
 
     except Exception as e:

@@ -67,7 +67,7 @@ async def warning_not_correct_surname(message: Message) -> None:
                              lambda x: x.text.isdigit() and 4 <= int(x.text) <= 120)
 async def process_age_sent(message: Message, state: FSMContext) -> None:
     """Age correct input handler, switches to gender selection state"""
-    await state.update_data(age=message.text)
+    await state.update_data(age=int(message.text))
     keyboard = KeyboardEnterGender()
     await message.answer(text=keyboard.text,
                          reply_markup=keyboard.markup)

@@ -5,6 +5,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram import Dispatcher
 import asyncio
 
+from db import Crud
 from logs import logger
 from config_data.config import bot
 from keyboards import set_main_menu
@@ -27,12 +28,13 @@ async def main():
     dp.include_router(registration_router)
     dp.include_router(weather_router)
     dp.include_router(voice_router)
-    # dp.include_router(text_router)
+    dp.include_router(text_router)
     dp.include_router(payment_router)
     dp.include_router(other_router)
 
     await set_main_menu(bot)
     logger.info("Starting bot")
+    await Crud.create_tables()
     await dp.start_polling(bot)
 
 
